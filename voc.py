@@ -3,6 +3,7 @@ import json
 import shutil
 import sys
 import warnings
+import webbrowser
 from pathlib import Path
 from typing import cast
 
@@ -224,6 +225,13 @@ def cli() -> argparse.Namespace:
         default=True,
         help="Rebuild the cache.",
     )
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        default=False,
+        help="Open the generated documentation in the default web browser.",
+    )
+
     return parser.parse_args()
 
 
@@ -244,6 +252,8 @@ def main() -> None:
         output=args.output,
     )
     print(f"Documented {len(modules)} modules")
+    if args.open:
+        webbrowser.open(args.output / "index.html")
 
 
 if __name__ == "__main__":
