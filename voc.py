@@ -243,7 +243,7 @@ def main() -> None:
     module_names.extend(args.ignore)
     module_names.extend(args.modules)
 
-    path_cache: Path = args.output / ".cache"
+    path_cache: Path = args.output
     if not args.cache and path_cache.exists():
         shutil.rmtree(path_cache)
 
