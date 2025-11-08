@@ -1,0 +1,10 @@
+[project]
+name = "voc"
+version = "0.1.0"
+description = "Python documentation generator"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["pdoc", "tqdm>=4.67.1"]
+
+[project.scripts]
+voc = "voc:main"
