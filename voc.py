@@ -1,9 +1,12 @@
 import argparse
+import itertools
 import json
 import shutil
+import site
 import sys
 import warnings
 import webbrowser
+from collections.abc import Generator
 from pathlib import Path
 from typing import cast
 
@@ -181,10 +184,39 @@ def build_modules(modules: list[str], output: Path) -> set[str]:
     return set(targets.keys())
 
 
-def get_stdlib() -> set[str]:
+def get_modules_stdlib() -> set[str]:
     builtin = {mod for mod in sys.builtin_module_names if not mod.startswith("_")}
     lib = {mod for mod in sys.stdlib_module_names if not mod.startswith("_")}
     return builtin | lib
+
+
+def sitepackage_dirs() -> list[Path]:
+    return list(
+        {
+            p: None
+            for d in itertools.chain(site.getsitepackages(), (site.getusersitepackages(),), sys.path)
+            if (p := Path(d).resolve()).exists() and p.is_dir()
+        }.keys()
+    )
+
+
+def sitepackages() -> set[Path]:
+    return {
+        mod.resolve()
+        for sitepackages in sitepackage_dirs()
+        for mod in sitepackages.iterdir()
+        if (mod.is_dir() and (mod / "__init__.py").exists()) or (mod.suffix == ".py")
+    }
+
+
+def get_modules_sitepackages() -> set[str]:
+    def modules() -> Generator[str, None, None]:
+        for mod in sitepackages():
+            if mod.stem.startswith("_"):
+                continue
+            yield mod.stem
+
+    return set(modules()) - get_modules_stdlib()
 
 
 def cli() -> argparse.Namespace:
@@ -226,6 +258,13 @@ def cli() -> argparse.Namespace:
         help="Rebuild the cache.",
     )
     parser.add_argument(
+        "--no-sitepackages",
+        dest="sitepackages",
+        action="store_false",
+        default=True,
+        help="Include site-package modules.",
+    )
+    parser.add_argument(
         "--open",
         action="store_true",
         default=False,
@@ -239,7 +278,9 @@ def main() -> None:
     args = cli()
     module_names = []
     if args.stdlib:
-        module_names.extend(get_stdlib())
+        module_names.extend(get_modules_stdlib())
+    if args.sitepackages:
+        module_names.extend(get_modules_sitepackages())
     module_names.extend(args.ignore)
     module_names.extend(args.modules)
 
